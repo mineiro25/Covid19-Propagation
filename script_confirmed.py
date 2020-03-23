@@ -80,15 +80,16 @@ source_data = source_data[['data', 'confirmados']]
 #set the date as an index
 source_data = source_data.set_index('data')
 
+#Convert numpy array to dataframe
+source_data = pd.DataFrame(source_data)
 """
 Normalize data between -1 and 1
 Because the use of tanh in LSTM
 """
 def normalize(data):
-    data = data.values
-    scaler = MinMaxScaler(feature_range=(-1, 1))
-    data_scaled = scaler.fit_transform(data)
-    return scaler, data_scaled
+    scaler = MinMaxScaler(feature_range=(-1,1))
+    data[['confirmados']] = scaler.fit_transform(data[['confirmados']])
+    return scaler, data
 
 #Turn unsupervised learning in supervised
 def sequence_pred(dataframe, timesteps):
@@ -117,7 +118,7 @@ source_data_copy = source_data.copy()
 
 #Generate a range of dates between the last record and a date of choosing
 dates2predict = np.array(pd.date_range(source_data_copy.reset_index()['data'].values[len(source_data_copy)-1], "25-03-2020", freq='D').strftime("%d-%m-%Y"))
-dates2predict = np.delete(dates2predict, 0)
+#dates2predict = np.delete(dates2predict, 0)
 
 #Parameters for the model
 timesteps = 5
@@ -131,10 +132,10 @@ verbose = 1
 Normalization of the data
 And retreiving the scale object
 """
-scaler, dataframe = normalize(source_data)
+scaler, dataframe_normalized = normalize(source_data)
 
 #Generate the sequences
-X, y =sequence_pred(source_data, timesteps)
+X, y = sequence_pred(dataframe_normalized, timesteps)
 
 ########################################################################################################################################
 #################################################### - Model Creation + training - ##################################################### 
@@ -180,27 +181,41 @@ model.fit(X, y, epochs=epochs, batch_size=batch_size, shuffle=False, verbose=ver
 def predict_cases(model, dataframe, timesteps, multisteps, scaler):
     seq = dataframe.tail(timesteps).values
     new_input = seq
-    predict_cases = list()
+    predicted_cases = list()
     for _ in range(1, multisteps+1):
         new_input = new_input.reshape(1, timesteps, 1)
         prediction = model.predict(new_input, verbose=verbose)
         real_prediction = scaler.inverse_transform(prediction)
-        predict_cases.append(real_prediction[0][0])
+        predicted_cases.append(real_prediction[0][0])
         new_input = np.append(new_input[0], prediction)
         new_input = new_input[-timesteps:]
-    return predict_cases
+    return predicted_cases
 
-predictions = predict_cases(model, source_data, timesteps, multisteps, scaler)
+predictions = predict_cases(model, dataframe_normalized, timesteps, multisteps, scaler)
+
+print("predictions: ", predictions)
 
 #Plotting results
-def plot_predictions(data, predictions, dates2predict):
-    plt.figure(figsize=(15,12))
-    plt.plot(range(len(data)), data, color='green', label='Confirmed')
-    plt.plot(range(len(data)-1, len(data)+len(predictions)-1), predictions, color='red', label='Prediction')
+def plot_predictions(source_data, predictions, dates2predict):
+    #all the dates
+    dates = pd.DataFrame(source_data.reset_index()['data'].values)
+    dates2predict = pd.DataFrame(dates2predict)
+    complete_dates = np.array(pd.concat([dates, dates2predict], ignore_index=True)).flatten()
+
+    #all the data
+    data = pd.DataFrame(source_data.values)
+    predictions = pd.DataFrame(predictions).round(0).astype(int)
+    complete_data = np.array(pd.concat([data, predictions], ignore_index=True)).flatten()
+
+    plt.figure(figsize=(25,17))
+    plt.plot(range(len(source_data)), source_data, color='green', label='Confirmed')
+    plt.plot(range(len(source_data)-1, len(source_data)+len(predictions)-1), predictions, color='red', label='Prediction')
+    plt.xticks([x  for x in range(0, len(complete_dates))], complete_dates[[x  for x in range(0, len(complete_dates))]], rotation=30)
     plt.title('Confirmed Cases of COVID-19')
     plt.ylabel('Cases')
     plt.xlabel('Days')
     plt.legend()
     plt.show()
 
-plot_predictions(source_data, predictions,dates2predict)
+plot_predictions(source_data_copy, predictions, dates2predict)
+
