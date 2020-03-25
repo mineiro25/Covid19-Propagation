@@ -100,8 +100,8 @@ def sequence_pred(dataframe, timesteps):
         input_index = i + timesteps
         label_index = input_index + 1
         if label_index < size:
-            X.append(data_values[i:input_index, :])
-            y.append(data_values[input_index:label_index, 0])
+            X.append(data_values[i:input_index,:])
+            y.append(data_values[input_index:label_index,0])
     
     return np.array(X), np.array(y)
 
@@ -185,7 +185,7 @@ def predict_cases(model, dataframe, timesteps, multisteps, scaler):
     for _ in range(1, multisteps+1):
         new_input = new_input.reshape(1, timesteps, 1)
         prediction = model.predict(new_input, verbose=verbose)
-        real_prediction = scaler.inverse_transform(prediction)
+        real_prediction = scaler.inverse_transform(prediction)       
         predicted_cases.append(real_prediction[0][0])
         new_input = np.append(new_input[0], prediction)
         new_input = new_input[-timesteps:]
