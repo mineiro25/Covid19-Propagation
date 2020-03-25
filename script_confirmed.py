@@ -118,7 +118,7 @@ source_data_copy = source_data.copy()
 
 #Generate a range of dates between the last record and a date of choosing
 dates2predict = np.array(pd.date_range(source_data_copy.reset_index()['data'].values[len(source_data_copy)-1], "25-03-2020", freq='D').strftime("%d-%m-%Y"))
-#dates2predict = np.delete(dates2predict, 0)
+dates2predict = np.delete(dates2predict, 0)
 
 #Parameters for the model
 timesteps = 5
@@ -167,7 +167,7 @@ callbacks = [
             monitor='root_mean_squared_error', 
             verbose=1, save_best_only=True,
             save_weights_only=False, 
-            period=5)
+            period=10)
 ] 
 
 #Model creation and training
