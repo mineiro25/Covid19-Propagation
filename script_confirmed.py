@@ -74,6 +74,9 @@ source_data = pd.read_csv("Data/data.csv")
 #######################################################################################################################################
 ####################################################### - Data treatment - ############################################################
 
+#Set the seed
+np.random.seed(12345)
+
 #Filtering some columns
 source_data = source_data[['data', 'confirmados']]
 
@@ -117,14 +120,14 @@ def root_mean_squared_error(y_true, y_pred):
 source_data_copy = source_data.copy()
 
 #Generate a range of dates between the last record and a date of choosing
-dates2predict = np.array(pd.date_range(source_data_copy.reset_index()['data'].values[len(source_data_copy)-1], "26-03-2020", freq='D').strftime("%d-%m-%Y"))
+dates2predict = np.array(pd.date_range(source_data_copy.reset_index()['data'].values[len(source_data_copy)-1], "28-03-2020", freq='D').strftime("%d-%m-%Y"))
 dates2predict = np.delete(dates2predict, 0)
 
 #Parameters for the model
 timesteps = 5
 univariate = 1
 multisteps = len(dates2predict)
-epochs = 700
+epochs = 3700
 batch_size = 6
 verbose = 1
 
@@ -163,7 +166,7 @@ def build_model(timesteps, univariate):
 #Define callbacks
 callbacks = [
     keras.callbacks.callbacks.ModelCheckpoint(
-        filepath='Callbacks/LSTM_COVID19_Confirmed_{epoch}_{root_mean_squared_error:.3f}.hdf5', 
+        filepath='Callbacks/LSTM_COVID19_Confirmed_{epoch}_{root_mean_squared_error:.4f}.hdf5', 
             monitor='root_mean_squared_error', 
             verbose=1, save_best_only=True,
             save_weights_only=False, 
@@ -172,10 +175,10 @@ callbacks = [
 
 #Model creation and training
 model = build_model(timesteps, univariate)
-model.fit(X, y, epochs=epochs, batch_size=batch_size, shuffle=False, verbose=verbose, callbacks=callbacks)
+history = model.fit(X, y, epochs=epochs, batch_size=batch_size, shuffle=False, verbose=verbose, callbacks=callbacks)
 
 #########################################################################################################################################
-####################################################### - Model prediction + plotting - ################################################# 
+########################################################## - Model prediction - ######################################################### 
 
 #Prediction of new confirmed cases
 def predict_cases(model, dataframe, timesteps, multisteps, scaler):
@@ -194,6 +197,35 @@ def predict_cases(model, dataframe, timesteps, multisteps, scaler):
 predictions = predict_cases(model, dataframe_normalized, timesteps, multisteps, scaler)
 
 print("predictions: ", predictions)
+
+#########################################################################################################################################
+########################################################## - Plotting - ################################################################# 
+
+#Plot the rmse evolution
+def plot_rmse_evolution(history, epochs):
+    print(history.history.keys())
+    plt.figure(figsize=(50,17))
+    plt.plot(history.history['root_mean_squared_error'], color='red', label='rmse')
+    plt.plot(history.history['mse'], color='blue', label='mse')
+    plt.title('RMSE evolution')
+    plt.xticks(range(0, epochs + 1000, 1000), range(0, epochs + 1000, 1000))
+    plt.ylabel('RMSE')
+    plt.xlabel('Epoch')
+    plt.legend()
+    plt.show()
+
+
+#Plot Loss evolution
+def plot_loss_evolution(history, epochs):
+    print(history.history.keys())
+    plt.figure(figsize=(50,17))
+    plt.plot(history.history['loss'], label='Loss')
+    plt.title('Model loss')
+    plt.xticks(range(0, epochs + 1000, 1000), range(0, epochs + 1000, 1000))
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend()
+    plt.show()    
 
 #Plotting results
 def plot_predictions(source_data, predictions, dates2predict):
@@ -218,4 +250,5 @@ def plot_predictions(source_data, predictions, dates2predict):
     plt.show()
 
 plot_predictions(source_data_copy, predictions, dates2predict)
-
+plot_rmse_evolution(history, epochs)
+plot_loss_evolution(history, epochs)
