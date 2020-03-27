@@ -127,7 +127,7 @@ dates2predict = np.delete(dates2predict, 0)
 timesteps = 5
 univariate = 1
 multisteps = len(dates2predict)
-epochs = 3700
+epochs = 7500
 batch_size = 6
 verbose = 1
 
@@ -147,13 +147,9 @@ X, y = sequence_pred(dataframe_normalized, timesteps)
 def build_model(timesteps, univariate):
     model = Sequential()
     model.add(LSTM(64, input_shape=(timesteps, univariate), return_sequences=True, activation="relu", kernel_initializer='random_uniform'))
-    model.add(Dropout(0.5))
     model.add(LSTM(128, return_sequences=True, activation="relu", kernel_initializer='random_uniform'))
-    model.add(Dropout(0.5))
     model.add(LSTM(256, return_sequences=False, activation="relu", kernel_initializer='random_uniform'))
-    model.add(Dropout(0.5))
     model.add(Dense(64, activation="relu", kernel_initializer='random_uniform'))
-    model.add(Dropout(0.5))
     model.add(Dense(1, activation="linear"))
 
     #At every batch the decay will reduce the learning rate
