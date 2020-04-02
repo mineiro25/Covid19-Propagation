@@ -127,9 +127,14 @@ def root_mean_squared_error(y_true, y_pred):
 #create a copy of the dataframe
 source_data_copy = source_data.copy()
 
+#Get the last registered date
+lastDate = datetime.datetime.strptime(source_data_copy.reset_index()['data'].values[len(source_data_copy)-1], "%d-%m-%Y")
+
+#Define the limit date to predict
+limitDate = datetime.datetime.strptime("04-04-2020", "%d-%m-%Y")
+
 #Generate a range of dates between the last record and a date of choosing
-dates2predict = np.array(pd.date_range(source_data_copy.reset_index()['data'].values[len(source_data_copy)-1], "04-04-2020", freq='D').strftime("%d-%m-%Y"))
-dates2predict = np.delete(dates2predict, 0)
+dates2predict = np.array(pd.date_range(lastDate, limitDate, freq='D', closed='right').strftime("%d-%m-%Y"))
 
 #Parameters for the model
 timesteps = 5
@@ -155,17 +160,13 @@ X, y = sequence_pred(dataframe_normalized, timesteps)
 #build the model
 def build_model(timesteps, univariate):
     model = tf.keras.Sequential()
-    model.add(LSTM(700, input_shape=(timesteps, univariate), return_sequences=True, activation="tanh", kernel_initializer='random_uniform'))
+    model.add(LSTM(50, input_shape=(timesteps, univariate), return_sequences=True))
     model.add(Dropout(0.5))
-    model.add(LSTM(900, return_sequences=True, activation="sigmoid", kernel_initializer='random_uniform'))
-    model.add(Dropout(0.5))
-    model.add(LSTM(900, return_sequences=True, activation="relu", kernel_initializer='random_uniform'))
+    model.add(LSTM(65, return_sequences=True))
     model.add(Dropout(0.5))    
-    model.add(LSTM(700, return_sequences=True, activation="relu", kernel_initializer='random_uniform'))
-    model.add(Dropout(0.5))      
-    model.add(LSTM(900, return_sequences=False, activation="relu", kernel_initializer='random_uniform'))
+    model.add(LSTM(75, return_sequences=False))
     model.add(Dropout(0.5))
-    model.add(Dense(700, activation="relu", kernel_initializer='random_uniform'))
+    model.add(Dense(27))
     model.add(Dropout(0.5))
     model.add(Dense(1, activation="linear"))
 
